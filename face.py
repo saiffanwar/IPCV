@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import argparse
 
+from eval import eval
 
 groundTruths = {'dart4.jpg': [[342, 99, 135, 176]],
                 'dart5.jpg': [[65, 141, 55, 66], [56, 243, 59, 80], [191, 206, 59, 79], [252, 169, 54, 65], [290, 236, 57, 74], [373, 189, 68, 66], [428, 228, 58, 80], [518, 172, 54, 69], [560, 237, 59, 78], [648, 180, 57, 69], [683, 240, 52, 72]],
@@ -38,10 +39,10 @@ def detect(image):
     print(faces_count)
     print(faces)
 #displays the image with roi
+    print(eval(groundTruths[args.image], faces))
     cv.imshow('detected.jpg',img)
     cv.waitKey(0)
     cv.destroyAllWindows()
-    
-    
-detect('images/positives/'+args.image)
 
+
+detect('images/positives/'+args.image)

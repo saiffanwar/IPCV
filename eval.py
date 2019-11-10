@@ -1,11 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt 
+from pprint import pprint
 
 # Calculates the precision, recall and F1 score for a detection task with targets and predictions made.
 def eval(targets, predicts):
 
 	# Counters for True Positives, False Positives and False Negatives
-	TP, FP, FN = 0
+	TP, FP, FN = 0, 0, 0
 
 	# If there are no targets or predicts: assign perfect precision, recall & f1
 	if(len(targets) == 0 and len(predicts) == 0):
@@ -22,21 +22,28 @@ def eval(targets, predicts):
 	# If there are both targets and predicts
 	else:
 
-		# Pair up targets with closest predict
-		pairs = []
-		unpaired_predicts = predicts
-
-		# Calculate dist between each target and remaining predicts
+		# Calculate IOU between each target and predict
+		overlaps = []
 		for t in targets:
-			dists = []
-			for p in unpaired_predicts:
-				dists.append(boundary_distance(t, p))
+			ious = []
+			for p in predicts:
+				ious.append(iou(t, p))
+			overlaps.append(ious)
+		overlaps = np.asarray(overlaps)
 
-			# Pair target with closest predict and remove predict 
-			i = np.argmin(dists)
-			pairs.append(t, unpaired_predicts[i])
-			del unpaired_predicts[i]
+		for i in range(overlaps.shape[1])
+			iousi
+			for j in range(overlaps.shape[0])
+			iousi = np.append()
 
+
+
+
+			# Pair target with closest predict and remove predict
+		i = np.argmin(dists)
+		pairs.append((t, unpaired_predicts[i]))
+		np.delete(unpaired_predicts, i)
+		print(pairs)
 		# Evaluate matched pairs
 		for t, p in pairs:
 			correct = iou(t, p)
@@ -48,14 +55,14 @@ def eval(targets, predicts):
 
 		# Handle left over targets/predicts that weren't paired
 		FP += len(unpaired_predicts)
-		FN += max(0, targets-predicts)
+		FN += max(0, len(targets)-len(predicts))
 
 	# calculates precision, recall and F1 score
-	precision, recall = precision(TP, FP), recall(TP, FN)
-	return precision, recall, f1(precision, recall)
+	p, r = precision(TP, FP), recall(TP, FN)
+	return p, r, f1(p, r)
 
 # Given two boundaries target and predict, determines prediction was correct based on IoU threshold
-def iou(target, predict, threshold=0.5):
+def iou(target, predict):
 	Xt1, Yt1, Wt, Ht = target
 	Xp1, Yp1, Wp, Hp = predict
 
@@ -72,15 +79,22 @@ def iou(target, predict, threshold=0.5):
 	Xi2 = min(Xt2, Xp2)
 	Yi2 = min(Yt2, Yp2)
 
-	# Intersection area
-	intersection = (Xi2 - Xi1) * (Yi2 - Yi1)
 
+	# Intersection area
+	intersectionWidth = Xi2 - Xi1
+	intersectionHeight = Yi2 - Yi1
+
+	if (intersectionWidth < 0) or (intersectionHeight < 0):
+		return 0
+	intersection = intersectionWidth * intersectionHeight
 	# Union area
 	union = At + Ap - intersection
 
 	# IntersectionOverUnion
 	iou = intersection/union
+	return iou
 
+def iouThreshold(iou, threshold = 0.5) :
 	# Applies threshold to determine if positive or negative prediction
 	if iou <= threshold:
 		return 0
@@ -89,7 +103,7 @@ def iou(target, predict, threshold=0.5):
 
 # Calculates Recall measurement based on True Positive and False Negative counts
 def recall(TP, FN):
-	
+
 	# If both 0, this is equal to 100% recall
 	if(TP == 0 and FN == 0):
 		return 1
@@ -112,13 +126,10 @@ def f1(precision, recall):
 # Calculates the coords of the centre of a given boundary
 def boundary_centre(boundary):
 	x, y, w, h = boundary
-	retrun round((x+w)/2), round((y+h)/2)
+	return round((x+w)/2), round((y+h)/2)
 
 # Calculates the distance between the centres of two boundaries, b1 and b2
 def boundary_distance(b1, b2):
 	x1, y1 = boundary_centre(b1)
 	x2, y2 = boundary_centre(b2)
-	return sqrt((x2-x1)**2 + (y2-y1)**2)
-
-
-
+	return np.sqrt((x2-x1)**2 + (y2-y1)**2)
