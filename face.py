@@ -1,5 +1,18 @@
 import numpy as np
 import cv2 as cv
+import argparse
+
+
+groundTruths = {'dart4.jpg': [[342, 99, 135, 176]],
+                'dart5.jpg': [[65, 141, 55, 66], [56, 243, 59, 80], [191, 206, 59, 79], [252, 169, 54, 65], [290, 236, 57, 74], [373, 189, 68, 66], [428, 228, 58, 80], [518, 172, 54, 69], [560, 237, 59, 78], [648, 180, 57, 69], [683, 240, 52, 72]],
+                'dart13.jpg': [[418, 118, 118, 143]],
+                'dart14.jpg': [[463, 200, 91, 126], [727, 174, 102, 124]],
+                'dart15.jpg': [[64, 128, 59, 83], [372, 103, 53, 85], [539, 130, 78, 84]]
+}
+
+parser = argparse.ArgumentParser(description = 'Face Detector')
+parser.add_argument('--image', help='Path to image', default = 'dart5.jpg')
+args = parser.parse_args()
 
 # Uses classifier frontface.xml
 face_cascade = cv.CascadeClassifier('frontalface.xml')
@@ -14,7 +27,11 @@ def detect(image):
 
 # highlights regions of interest and draws them onto the image.
     for (x,y,w,h) in faces:
-        img = cv.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+        img = cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = img[y:y+h, x:x+w]
+    for(x,y,w,h) in groundTruths[args.image]:
+        img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
     faces_count = faces.size/4
@@ -26,5 +43,5 @@ def detect(image):
     cv.destroyAllWindows()
     
     
-detect('images/positives/dart5.jpg')
+detect('images/positives/'+args.image)
 

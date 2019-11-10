@@ -1,9 +1,8 @@
-import argparser
 import numpy as np
 import matplotlib.pyplot as plt 
 
 # Calculates the precision, recall and F1 score for a detection task with targets and predictions made.
-def eval(tagets, predicts):
+def eval(targets, predicts):
 
 	# Counters for True Positives, False Positives and False Negatives
 	TP, FP, FN = 0
