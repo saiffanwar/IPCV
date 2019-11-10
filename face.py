@@ -17,6 +17,8 @@ def detect(image):
         img = cv.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
+    faces_count = faces.size/4
+    print(faces_count)
     print(faces)
 #displays the image with roi
     cv.imshow('detected.jpg',img)
