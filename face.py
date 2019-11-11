@@ -24,7 +24,7 @@ def detect(image):
 
     img = cv.imread(image)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    faces = np.asarray(face_cascade.detectMultiScale(gray, 1.3, 5))
 
 # highlights regions of interest and draws them onto the image.
     for (x,y,w,h) in faces:
@@ -35,14 +35,10 @@ def detect(image):
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
-    faces_count = faces.size/4
-    print(faces_count)
-    print(faces)
+    faces_count = faces.shape[0]
 #displays the image with roi
     print(eval(groundTruths[args.image], faces))
-    cv.imshow('detected.jpg',img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    cv.imwrite('detected.jpg',img)
 
 
 detect('images/positives/'+args.image)

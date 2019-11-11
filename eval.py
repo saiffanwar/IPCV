@@ -24,31 +24,38 @@ def eval(targets, predicts):
 
 		# Calculate IOU between each target and predict
 		IOUs = [[iou(t, p) for p in predicts] for t in targets]
-		print(IOUs)
 
 		# Apply threshold on IOUs to determine detections
-		detections = [[iouThreshold(x) for x in iou] for iou in IOUs]
-		print(detections)
+		detections = np.asarray([[iouThreshold(x) for x in iou] for iou in IOUs])
 
-		pairs.append((t, unpaired_predicts[i]))
-		np.delete(unpaired_predicts, i)
-		print(pairs)
-		# Evaluate matched pairs
-		for t, p in pairs:
-			correct = iou(t, p)
+		# for each row that has no 1s in the thresholded iou matrix, there is a FN
+		for row in detections:
+			if np.sum(row) == 0:
+				FN +=1
+		detections, FP = conflictResolver(detections)
+		TP = np.sum(detections)
 
-			if(correct==1):
-				TP += 1
-			else:
-				FP += 1
-
-		# Handle left over targets/predicts that weren't paired
-		FP += len(unpaired_predicts)
-		FN += max(0, len(targets)-len(predicts))
 
 	# calculates precision, recall and F1 score
 	p, r = precision(TP, FP), recall(TP, FN)
 	return p, r, f1(p, r)
+
+def conflictResolver(detections):
+	FP = 0
+	for j in range(detections.shape[1]):
+		if np.sum(detections[:,j]) > 1:
+			detections[:,j] = 0
+	for i in range(detections.shape[0]):
+		if np.sum(detections[i,:]) > 1:
+			detections[i,:] = 0
+	for col in detections.T:
+		if np.sum(col) == 0:
+			FP += 1
+
+
+	return detections, FP
+
+
 
 # Given two boundaries target and predict, determines prediction was correct based on IoU threshold
 def iou(target, predict):
@@ -113,4 +120,3 @@ def precision(TP, FP):
 # Calculates F1 Score based on precision and recall
 def f1(precision, recall):
 	return 2 * ((precision*recall) / (precision+recall))
-
