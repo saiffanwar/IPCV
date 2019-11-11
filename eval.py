@@ -13,37 +13,23 @@ def eval(targets, predicts):
 
 	# If there are targets but no predicts are made: assign all targets are FNs
 	elif(len(targets) != 0 and len(predicts) == 0):
-		FN += len(targets)
+		FN = len(targets)
 
 	# If there are no targets but predicts are made: assign all predicts as FPs
 	elif(len(targets) == 0 and len(predicts) != 0):
-		FP += len(predicts)
+		FP = len(predicts)
 
 	# If there are both targets and predicts
 	else:
 
 		# Calculate IOU between each target and predict
-		overlaps = []
-		for t in targets:
-			#ious in each iteration will be an array for each groundtruth image containing the iou with every prediction
-			ious = []
-			for p in predicts:
-				ious.append(iou(t, p))
-			overlaps.append(ious)
-			print(ious)
-		#overlaps is the array containing the subarrays of all the ious
-		overlaps = np.asarray(overlaps)
+		IOUs = [[iou(t, p) for p in predicts] for t in targets]
+		print(IOUs)
 
-#		for i in range(overlaps.shape[1])
-#			iousi
-#			for j in range(overlaps.shape[0])
-#			iousi = np.append()
+		# Apply threshold on IOUs to determine detections
+		detections = [[iouThreshold(x) for x in iou] for iou in IOUs]
+		print(detections)
 
-
-
-
-			# Pair target with closest predict and remove predict
-#		i = np.argmin(dists)
 		pairs.append((t, unpaired_predicts[i]))
 		np.delete(unpaired_predicts, i)
 		print(pairs)
@@ -128,13 +114,3 @@ def precision(TP, FP):
 def f1(precision, recall):
 	return 2 * ((precision*recall) / (precision+recall))
 
-# Calculates the coords of the centre of a given boundary
-def boundary_centre(boundary):
-	x, y, w, h = boundary
-	return round((x+w)/2), round((y+h)/2)
-
-# Calculates the distance between the centres of two boundaries, b1 and b2
-def boundary_distance(b1, b2):
-	x1, y1 = boundary_centre(b1)
-	x2, y2 = boundary_centre(b2)
-	return np.sqrt((x2-x1)**2 + (y2-y1)**2)
