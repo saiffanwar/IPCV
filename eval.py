@@ -84,8 +84,10 @@ def iou(target, predict):
 	intersectionWidth = Xi2 - Xi1
 	intersectionHeight = Yi2 - Yi1
 
+	# Checks for no overlap case
 	if (intersectionWidth < 0) or (intersectionHeight < 0):
 		return 0
+
 	intersection = intersectionWidth * intersectionHeight
 	# Union area
 	union = At + Ap - intersection
