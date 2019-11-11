@@ -25,22 +25,25 @@ def eval(targets, predicts):
 		# Calculate IOU between each target and predict
 		overlaps = []
 		for t in targets:
+			#ious in each iteration will be an array for each groundtruth image containing the iou with every prediction
 			ious = []
 			for p in predicts:
 				ious.append(iou(t, p))
 			overlaps.append(ious)
+			print(ious)
+		#overlaps is the array containing the subarrays of all the ious
 		overlaps = np.asarray(overlaps)
 
-		for i in range(overlaps.shape[1])
-			iousi
-			for j in range(overlaps.shape[0])
-			iousi = np.append()
+#		for i in range(overlaps.shape[1])
+#			iousi
+#			for j in range(overlaps.shape[0])
+#			iousi = np.append()
 
 
 
 
 			# Pair target with closest predict and remove predict
-		i = np.argmin(dists)
+#		i = np.argmin(dists)
 		pairs.append((t, unpaired_predicts[i]))
 		np.delete(unpaired_predicts, i)
 		print(pairs)
