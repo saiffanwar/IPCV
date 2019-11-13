@@ -24,6 +24,7 @@ def detect(image):
 
     img = cv.imread(image)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    gray = cv.equalizeHist(gray)
     faces = np.asarray(face_cascade.detectMultiScale(gray, 1.3, 5))
 
 # highlights regions of interest and draws them onto the image.
