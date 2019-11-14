@@ -20,26 +20,28 @@ face_cascade = cv.CascadeClassifier('frontalface.xml')
 
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
-def detect(image):
-
-    img = cv.imread(image)
+def detect(path, image):
+    print(image)
+    img = cv.imread(path)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
-    faces = np.asarray(face_cascade.detectMultiScale(gray, 1.3, 5))
+    faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=1.1, minNeighbors=1, minSize=(50, 50), maxSize=(500,500)))
 
 # highlights regions of interest and draws them onto the image.
     for (x,y,w,h) in faces:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
-    for(x,y,w,h) in groundTruths[args.image]:
+    for(x,y,w,h) in groundTruths[image]:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
     faces_count = faces.shape[0]
 #displays the image with roi
-    print(eval(groundTruths[args.image], faces))
+    print(eval(groundTruths[image], faces))
     cv.imwrite('detected.jpg',img)
 
 
-detect('images/positives/'+args.image)
+images=('dart4.jpg','dart5.jpg','dart13.jpg','dart14.jpg','dart15.jpg')
+for i in images:
+    detect('images/positives/'+i, i)

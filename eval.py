@@ -34,6 +34,7 @@ def eval(targets, predicts):
 				FN +=1
 		detections, FP = conflictResolver(detections)
 		TP = np.sum(detections)
+		print(detections)
 
 
 	# calculates precision, recall and F1 score
@@ -114,7 +115,7 @@ def precision(TP, FP):
 	# If both 0, this is equal to 100% precision
 	if(TP == 0 and FP == 0):
 		return 1
-
+	print(TP, FP)
 	return TP / (TP+FP)
 
 # Calculates F1 Score based on precision and recall
