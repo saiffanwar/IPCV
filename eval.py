@@ -9,36 +9,43 @@ def eval(targets, predicts):
 
 	# If there are no targets or predicts: assign perfect precision, recall & f1
 	if(len(targets) == 0 and len(predicts) == 0):
-		return 1, 1, 1
+		return 0, 0, 0, 1, 1, 1
 
 	# If there are targets but no predicts are made: assign all targets are FNs
 	elif(len(targets) != 0 and len(predicts) == 0):
 		FN = len(targets)
+		p, r = precision(0, 0), recall(0, len(targets))
+		return 0, 0, len(targets), p, r, f1(p, r)
 
-	# If there are no targets but predicts are made: assign all predicts as FPs
+	# If there are no targets but predicts are made: return all 0
 	elif(len(targets) == 0 and len(predicts) != 0):
-		FP = len(predicts)
+		return 0, len(predicts), 0, 0, 0, 0
 
 	# If there are both targets and predicts
 	else:
 
 		# Calculate IOU between each target and predict
 		IOUs = [[iou(t, p) for p in predicts] for t in targets]
-
+		
 		# Apply threshold on IOUs to determine detections
 		detections = np.asarray([[iouThreshold(x) for x in iou] for iou in IOUs])
 
-		# for each row that has no 1s in the thresholded iou matrix, there is a FN
+		# for each row that has no 1s in the thresholded iou matrix, this reflect an object never detected (FN)
 		for row in detections:
 			if np.sum(row) == 0:
 				FN +=1
-		detections, FP = conflictResolver(detections)
+
+		# for each col that has no 1s in the thresholded iou matrix, this reflects an incorrect prediction FP
+		for i, col in enumerate(detections.T):
+			if np.sum(col) == 0 and np.sum(detections[:, i]) != 0:
+				FP +=1
+
+		detections, fp = conflictResolver(detections)
+		FP += fp
 		TP = np.sum(detections)
-
-
 	# calculates precision, recall and F1 score
 	p, r = precision(TP, FP), recall(TP, FN)
-	return p, r, f1(p, r)
+	return TP, FP, FN, p, r, f1(p, r)
 
 def conflictResolver(detections):
 	FP = 0
@@ -92,7 +99,7 @@ def iou(target, predict):
 	iou = intersection/union
 	return iou
 
-def iouThreshold(iou, threshold = 0.5) :
+def iouThreshold(iou, threshold = 0.66) :
 	# Applies threshold to determine if positive or negative prediction
 	if iou <= threshold:
 		return 0
@@ -101,7 +108,6 @@ def iouThreshold(iou, threshold = 0.5) :
 
 # Calculates Recall measurement based on True Positive and False Negative counts
 def recall(TP, FN):
-
 	# If both 0, this is equal to 100% recall
 	if(TP == 0 and FN == 0):
 		return 1
@@ -113,9 +119,11 @@ def precision(TP, FP):
 
 	# If both 0, this is equal to 100% precision
 	if(TP == 0 and FP == 0):
-		return 1
+		return 1.0
 	return TP / (TP+FP)
 
 # Calculates F1 Score based on precision and recall
 def f1(precision, recall):
-	return 2 * ((precision*recall) / (precision+recall))
+	if precision == 0 and recall == 0:
+		return 0.0
+	return 2.0 * ((precision*recall) / (precision+recall))
