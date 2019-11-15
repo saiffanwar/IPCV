@@ -50,6 +50,7 @@ def detect(image):
     dartboards_count = dartboards.shape[0]
 #displays the image with roi
     print(eval(groundTruths[args.image], dartboards))
+
     cv.imwrite('detected.jpg',img)
 
 

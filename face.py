@@ -25,7 +25,7 @@ def detect(path, image):
     img = cv.imread(path)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
-    faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=1.1, minNeighbors=1, minSize=(50, 50), maxSize=(500,500)))
+    faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=1.3, minNeighbors=3, minSize=(50, 50), maxSize=(500,500)))
 
 # highlights regions of interest and draws them onto the image.
     for (x,y,w,h) in faces:
