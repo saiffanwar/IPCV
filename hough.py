@@ -13,7 +13,8 @@ def hough_line(edge_threshold=5, vote_threshold=1):
     width = edges.shape[0]
     height = edges.shape[1]
     max = int(round(np.sqrt((width**2) + (height**2))))
-    rhos = np.linspace(-max, max, max * 2)
+    rhos = np.linspace(-max, max, max*2)
+
 
     # Cache some resuable values
     cos_theta = np.cos(thetas)
@@ -21,8 +22,6 @@ def hough_line(edge_threshold=5, vote_threshold=1):
 
     # Hough accumulator array of theta vs rho
     votes = np.zeros((len(thetas), 2 * max), dtype=np.uint8)
-
-
     # (row, col) indexes to edges
     edges[edges < edge_threshold] = 0
     Ys, Xs = np.nonzero(edges)
@@ -39,18 +38,19 @@ def hough_line(edge_threshold=5, vote_threshold=1):
                 try:
                     voters[theta][rho].append((x,y))
                 except:
-
-    votes[votes < vote_threshold] = 0
+                    votes[votes < vote_threshold] = 0
     return votes, voters, thetas, rhos
 
 def hough2line(votes, voters, thetas, rhos):
 
     Ts, Rs =  np.nonzero(votes)
+    print(Ts, Rs)
     for i in range(len(Rs)):
         rho = Rs[i]
         theta = Ts[i]
         print(rho, theta)
         min = np.min(voters[theta][rho])
+        print(min)
         max = np.max(voters[theta][rho])
 
     img = cv.line(img, min, max, (0, 255, 0), 2)
