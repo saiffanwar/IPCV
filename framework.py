@@ -62,18 +62,17 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
     for (x,y,w,h) in faces:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
 
-        # line dectection within 
-        votes, thetas, rhos = hough(image=edges)
-        lines = votes2lines(edges, votes, thetas, rhos)
-        if(len(lines) > 0):
-            for line in lines:
-                cv.line(img, tuple(line[0]), tuple(line[1]), (255, 0, 0), 1)
-
-
     for(x,y,w,h) in groundTruths[image]:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
 
     faces_count = faces.shape[0]
+
+    # line dectection within 
+    votes, thetas, rhos = hough(image=edges)
+    lines = votes2lines(edges, votes, thetas, rhos)
+    if(len(lines) > 0):
+        for line in lines:
+            cv.line(img, tuple(line[0]), tuple(line[1]), (255, 0, 0), 1)
 #displays the image with roi
     cv.imwrite('detected.jpg',img)
     return eval(groundTruths[image], faces)
