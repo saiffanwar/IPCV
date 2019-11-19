@@ -50,7 +50,6 @@ def hough2line(votes, voters, thetas, rhos):
         theta = Ts[i]
         print(rho, theta)
         min = np.min(voters[theta][rho])
-        print(min)
         max = np.max(voters[theta][rho])
 
     img = cv.line(img, min, max, (0, 255, 0), 2)
