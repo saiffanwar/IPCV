@@ -5,55 +5,71 @@ import matplotlib.pyplot as plt
 
 img = cv.imread('images/positives/'+sys.argv[1])
 edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
+cv.imwrite('edges.jpg', edges )
+
 # cv.imwrite('edge.jpg',img)
 
-def hough_line(edge_threshold=5, vote_threshold=1):
+def hough(edges, edge_threshold=1, vote_threshold=1):
+
     # Rho and Theta ranges
     thetas = np.deg2rad(np.arange(-90.0, 90.0))
-    width = edges.shape[0]
-    height = edges.shape[1]
-    max = int(round(np.sqrt((width**2) + (height**2))))
-    rhos = np.linspace(-max, max, max*2)
+    width, height = edges.shape
+    max_rho = int(round(np.sqrt((width**2) + (height**2))))
+    rhos = np.linspace(-max_rho, max_rho, max_rho*2)
 
-
-    # Cache some resuable values
+    # preprocess trig values
     cos_theta = np.cos(thetas)
     sin_theta = np.sin(thetas)
 
     # Hough accumulator array of theta vs rho
-    votes = np.zeros((len(thetas), 2 * max), dtype=np.uint8)
-    # (row, col) indexes to edges
+    votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
+
+    # map all edges below threshold to 0
     edges[edges < edge_threshold] = 0
-    Ys, Xs = np.nonzero(edges)
-    voters = [[[(max,max), (0, 0)] for t in range(len(thetas))] for r in range(len(rhos))]
-    # Vote in the hough accumulator
-    for i in range(len(Xs)):
-        x = Xs[i]
-        y = Ys[i]
 
+    # Vote in the hough accumulator for each (x,y)
+    for x in range(width):
+        for y in range(height):
+            # Only consider non-zero edges
+            if edges[x, y] > 0:
+                # for each possible line around (x, y)
+                for j, theta in enumerate(thetas):
+                    # Calculate corresponding rho
+                    rho = x * cos_theta[j] + y * sin_theta[j]
+                    # Map rho calculated to index of nearest rho value available
+                    i = np.argmin(np.abs(rhos - rho))
+                    # increment bin in accumulator
+                    votes[i , j] += 1
+
+    return votes, thetas, rhos
+def hough2line(votes, thetas, rhos, threshold=100):
+    width, height = edges.shape
+    # for each line (rho, theta)
+    for i, rho in enumerate(rhos):
         for j, theta in enumerate(thetas):
-                # Calculate rho. diag_len is added for a positive index
-                rho = max + int(round(x * cos_theta[j] + y * sin_theta[j]))
-                votes[j, rho] += 1
-                try:
-                    voters[theta][rho].append((x,y))
-                except:
-                    votes[votes < vote_threshold] = 0
-    return votes, voters, thetas, rhos
+            # if sufficient votes
+            if votes[i,j] >= threshold and theta != 0:
+                # determine parametric form y = mx + c
+                m = -np.cos(theta)/np.sin(theta)
+                c = rho/np.sin(theta)
 
-def hough2line(votes, voters, thetas, rhos):
+                # axis intersections to plot
+                p1 = (int(c),0)
+                p2 = (int((m*width)+c),int(width))
+                cv.line(edges, p1, p2, (255, 0, 0), 1)
+    cv.imwrite('lines.jpg', edges )
 
-    Ts, Rs =  np.nonzero(votes)
-    print(Ts, Rs)
-    for i in range(len(Rs)):
-        rho = Rs[i]
-        theta = Ts[i]
-        print(rho, theta)
-        min = np.min(voters[theta][rho])
-        max = np.max(voters[theta][rho])
 
-    img = cv.line(img, min, max, (0, 255, 0), 2)
-    cv.imwrite('detectedline.jpg', img)
 
-votes, voters, thetas, rhos = hough_line()
-hough2line(votes, voters, thetas, rhos)
+
+
+votes, thetas, rhos = hough(edges)
+hough2line(votes, thetas, rhos)
+# fig, ax = plt.subplots(figsize=(10, 10))
+# ax.imshow(votes, cmap='jet', extent=[np.rad2deg(thetas[-1]), np.rad2deg(thetas[0]), rhos[-1], rhos[0]])
+# ax.set_title('Hough transform')
+# ax.set_xlabel('Angles (degrees)')
+# ax.set_ylabel('Distance (pixels)')
+# ax.axis('image')
+
+# plt.show()
