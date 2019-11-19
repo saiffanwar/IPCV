@@ -7,6 +7,7 @@ from matplotlib import cm
 from numpy import unravel_index
 
 from eval import eval
+from hough import hough, votes2lines
 
 path = 'images/positives/'
 
@@ -51,6 +52,7 @@ if args.mn < 1:
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
 def detect(image, scaleFactor=1.1, minNeighbors=1.1):
     img = cv.imread('images/positives/'+image)
+    edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
     faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=scaleFactor,
@@ -59,12 +61,18 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
 # highlights regions of interest and draws them onto the image.
     for (x,y,w,h) in faces:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = img[y:y+h, x:x+w]
+
+        # line dectection within 
+        votes, thetas, rhos = hough(image=edges)
+        lines = votes2lines(edges, votes, thetas, rhos)
+        if(len(lines) > 0):
+            for line in lines:
+                cv.line(img, tuple(line[0]), tuple(line[1]), (255, 0, 0), 1)
+
+
     for(x,y,w,h) in groundTruths[image]:
         img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = img[y:y+h, x:x+w]
+
     faces_count = faces.shape[0]
 #displays the image with roi
     cv.imwrite('detected.jpg',img)
