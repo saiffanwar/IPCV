@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 # cv.imwrite('edge.jpg',img)
 
 def hough(image):
-    
     # Rho and Theta ranges
     thetas = np.deg2rad(np.arange(-90.0, 90.0))
     width, height = image.shape
@@ -26,7 +25,7 @@ def hough(image):
     for x in range(width):
         for y in range(height):
             # Only consider non-zero edges
-            if image[x, y] > 0: 
+            if edges[x, y] > 0:
                 # for each possible line around (x, y)
                 for j, theta in enumerate(thetas):
                     # Calculate corresponding rho
@@ -42,6 +41,7 @@ def votes2lines(image, votes, thetas, rhos, threshold=100):
     lines = []
     width, height = image.shape
     # for each line (rho, theta) 
+
     for i, rho in enumerate(rhos):
         for j, theta in enumerate(thetas):
             # if sufficient votes
@@ -49,7 +49,7 @@ def votes2lines(image, votes, thetas, rhos, threshold=100):
                 # determine parametric form y = mx + c
                 m = -np.cos(theta)/np.sin(theta)
                 c = rho/np.sin(theta)
-            
+
                 # axis intersections to plot
                 p1 = (int(c),0)
                 p2 = (int((m*width)+c),int(width))
