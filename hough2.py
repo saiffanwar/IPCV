@@ -7,7 +7,7 @@ np.set_printoptions(threshold=sys.maxsize)
 #first i will read the image and create the binary version using Canny
 
 img = cv.imread('images/positives/'+sys.argv[1])
-edges = cv.Canny(image=img, threshold1 = 500, threshold2 = 500 )
+edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
 cv.imwrite('edges.jpg', edges)
 
 # thetas is an array of all the angles i will be calculating lines for in image space
@@ -19,7 +19,7 @@ max = int(round(np.sqrt((width**2) + (height**2))))
 # rhos is a list of all possible rho values to the nearest integer up to the max
 rhos = np.arange(0, max, 1)
 
-def hough_line(edge_threshold=5, vote_threshold=1):
+def hough_line():
     # Rho and Theta ranges
 
     # Cache some resuable values
@@ -46,7 +46,7 @@ def hough_line(edge_threshold=5, vote_threshold=1):
 def hough2line(votes, thetas, rhos):
     t = np.amax(votes)/2
     print(t)
-    lines = np.argwhere(votes > t)
+    lines = np.argwhere(votes > 100)
     for l1 in range(len(lines)):
         x = int(lines[l1][0] + 1)
         y = round(np.deg2rad(int(lines[l1][1] + 1)), 2)
