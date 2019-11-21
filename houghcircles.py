@@ -1,63 +1,51 @@
 import cv2 as cv, sys, numpy as np
 import matplotlib.pyplot as plt
 
-# img = cv.imread('images/positives/'+sys.argv[1])
-# edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
+# # img = cv.imread('images/positives/'+sys.argv[1])
+# edges = cv.Canny(image=img, threshold1 = 500, threshold2 = 500 )
 # cv.imwrite('edges.jpg', edges )
+# print(np.asarray(edges.shape))
 
-# cv.imwrite('edge.jpg',img)
+from PIL import Image, ImageDraw
+from math import sqrt, pi, cos, sin
+from canny import canny_edge_detector
+from collections import defaultdict
 
-def hough(image):
-    # Rho and Theta ranges
-    thetas = np.deg2rad(np.arange(-90.0, 90.0))
-    width, height = image.shape
-    max_rho = int(round(np.sqrt((width**2) + (height**2))))
-    rhos = np.linspace(-max_rho, max_rho, max_rho*2)
+# Load image:
+input_image = Image.open('circle.jpg')
 
-    # preprocess trig values
-    cos_theta = np.cos(thetas)
-    sin_theta = np.sin(thetas)
+# Output image:
+output_image = Image.new("RGB", input_image.size)
+output_image.paste(input_image)
+draw_result = ImageDraw.Draw(output_image)
 
-    # Hough accumulator array of theta vs rho
-    votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
+# Find circles
+rmin = 110
+rmax = 120
+steps = 100
+threshold = 0.4
 
-    # Vote in the hough accumulator for each (x,y)
-    for x in range(width):
-        for y in range(height):
-            # Only consider non-zero edges
-            if edges[x, y] > 0:
-                # for each possible line around (x, y)
-                for j, theta in enumerate(thetas):
-                    # Calculate corresponding rho
-                    rho = x * cos_theta[j] + y * sin_theta[j]
-                    # Map rho calculated to index of nearest rho value available
-                    i = np.argmin(np.abs(rhos - rho))
-                    # increment bin in accumulator
-                    votes[i , j] += 1
-    return votes, thetas, rhos
+points = []
+for r in range(rmin, rmax + 1):
+    for t in range(steps):
+        points.append((r, int(r * cos(2 * pi * t / steps)), int(r * sin(2 * pi * t / steps))))
 
-# maps vote accumulator to a set of line endings [(x1, y1), (x1, y2)]
-def votes2lines(image, votes, thetas, rhos, threshold=100):
-    lines = []
-    width, height = image.shape
-    # for each line (rho, theta)
+acc = defaultdict(int)
+for x, y in canny_edge_detector(input_image):
+    for r, dx, dy in points:
+        a = x - dx
+        b = y - dy
+        acc[(a, b, r)] += 1
 
-    for i, rho in enumerate(rhos):
-        for j, theta in enumerate(thetas):
-            # if sufficient votes
-            if votes[i,j] >= threshold and theta != 0:
-                # determine parametric form y = mx + c
-                m = -np.cos(theta)/np.sin(theta)
-                c = rho/np.sin(theta)
+circles = []
+for k, v in sorted(acc.items(), key=lambda i: -i[1]):
+    x, y, r = k
+    if v / steps >= threshold and all((x - xc) ** 2 + (y - yc) ** 2 > rc ** 2 for xc, yc, rc in circles):
+        print(v / steps, x, y, r)
+        circles.append((x, y, r))
 
-                # axis intersections to plot
-                p1 = (int(c),0)
-                p2 = (int((m*width)+c),int(width))
-                lines.append([p1, p2])
-                # cv.line(image, p1, p2, (255, 0, 0), 1)
-    cv.imwrite('lines.jpg', image )
+for x, y, r in circles:
+    draw_result.ellipse((x-r, y-r, x+r, y+r), outline=(255,0,0,0))
 
-    return np.asarray(lines)
-
-# votes, thetas, rhos = hough(image=edges)
-# hough2line(edges, votes, thetas, rhos)
+# Save output image
+output_image.save("result.png")
