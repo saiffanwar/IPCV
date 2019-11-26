@@ -69,150 +69,46 @@ def hough_lines(image, threshold=70):
                 lines.append([p1, p2])   
     return np.asarray(lines)
 
-def get_line_endpoints(line, width, height):
-    min_x = width
-    min_y = height
-    max_x = 0
-    max_y = 0
+def hough_ellipse(edges, minvotes = 10, min2a = 10):
+    width = edges.shape[0]
+    height = edges.shape[1]
+    #  a list of all coordinates in edges that are not zero
+    ys, xs = np.nonzero(edges)
+    nonzeros = np.array(list(zip(ys, xs)))
+    print(nonzeros)
+    # accumulator size of maximum minor axis length which is half of the width or height of the image
+    accumulator = np.zeros(int(np.maximum(height , width)/2))
+    for i1 in range(0, len(nonzeros)):
+        for i2 in (len(nonzeros)-1, i1, -1):   
+            x1, y1 = nonzeros[i1]
+            x2, y2 = nonzeros[i2]
+            d12 = np.sqrt(((x1-x2)**2) + ((y1-y2)**2))
+            accumulator = np.zeros(int(np.maximum(height , width)/2))
+            if  x1-x2 and d12 > min2a:
+                x0 = (x1 + x2)/2
+                y0 = (y1 + y2)/2
+                a = d12/2;
+                alpha = np.arctan((y2 - y1)/(x2 - x1))
+                for i3 in range(0, len(nonzeros)):
+                    if np.all(nonzeros[i3] == nonzeros[i1]) or np.all(nonzeros[i3] == nonzeros[i2]):
+                        continue
+                    x3, y3 = nonzeros[i3]
+                    d03 = np.sqrt(((x3-x0)**2) + ((y3-y0)**2))
+                    if (d03 >= a):
+                        continue
+                    f = np.sqrt(((x3-x2)**2) + ((y3-y2)**2))
+                    cos2_tau = ((a**2 + d03**2 - f**2)/(2*a*d03))**2
+                    sin2_tau = (1-cos2_tau)**2
+                    b = np.sqrt( ((a**2) * (d03**2) * sin2_tau) / ((a**2) - (d03**2) * cos2_tau) )
+                    b= int(np.round(b))
+                    if (0 <= b and b < len(accumulator)):
+                        accumulator[b] += 1
+                    maxi = np.argmax(accumulator)
 
-    for coord in line:
-        x,y = coord
-        if min_x > x and min_y > y:
-            min_x = x
-            min_y = y
-        elif max_x < x and max_y < y:
-            max_x = x
-            max_y = y
-
-    return [(min_x, min_y), (max_x, max_y)]
-
-def PPHT(image, vote_threshold=25, gap_threshold=6, length_threshold=4):
-    buffer = np.copy(image)
-    lines = []
-
-    # Rho and Theta ranges
-    thetas = np.deg2rad(np.arange(-90.0, 90.0))
-    width, height = image.shape
-    max_rho = int(round(np.sqrt((width**2) + (height**2))))
-    rhos = np.linspace(-max_rho, max_rho, max_rho*2)
-
-    # preprocess trig values
-    cos_theta = np.cos(thetas)
-    sin_theta = np.sin(thetas)
-
-    # Hough accumulator array of theta vs rho
-    votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
-    # while image not empty
-    while(np.sum(buffer) > 0):
-
-        # randomly select a non-zero pixel
-        X, Y = np.nonzero(buffer)
-
-        random = np.random.choice(range(len(X)), 1)
-        x = X[random][0]
-        y = Y[random][0]
-        
-        updated = []
-
-        # Update accumulator with random pixel
-        for j, theta in enumerate(thetas):
-                    # Calculate corresponding rho
-                    rho = x * cos_theta[j] + y * sin_theta[j]
-                    # Map rho calculated to index of nearest rho value available
-                    i = np.argmin(np.abs(rhos - rho))
-                    # increment bin in accumulator
-                    votes[i , j] += 1
-                    # remember bins updated
-                    updated.append((i,j))
-
-        # remove pixel from buffer
-        buffer[x,y]=0
-
-        # if highest peak in accumulator was a bin just updated and meets the threshold
-        peak = np.unravel_index(np.argmax(votes), votes.shape)
-        rho_index, theta_index = peak
-
-        if votes[rho_index, theta_index] <= vote_threshold:
-            continue
-
-        theta = thetas[theta_index]
-        rho = rhos[rho_index]
-        if peak in updated:
-            print("Line found at random location", x, y)
-            # search orginal image along the line specified from (x,y) to find the
-            # longest segment of pixels that does not exceed the gap threshold and
-            # is at least the length threshold
-
-            # all points of infinite line y = mx+c that lie in image space 
-            Y = []
-            # if angled line
-            if np.sin(theta) != 0:
-                m = -np.cos(theta)/np.sin(theta)
-                c = rho/np.sin(theta)
-            # if horizontal line
-            else:
-                m = 0
-                c = y
-            for w in range(width):
-                z = int((m*w)+c)
-                if z >= height:
-                    break
-                Y.append(z)
-            print(Y)
-            line = [(x,y)]
-            gap_count = 0
-            length_count = 0
-            
-            # find longest segment in postive direction
-            for j in range (int(x+1), len(Y)):
-                if image[j, Y[j]] != 0:
-                    line.append((j, Y[j]))
-                    length_count+=1
-                else:
-                    gap_count+=1
-                if gap_count > gap_threshold:
-                    gap_count = 0
-                    break
-            
-            # find longest segment in negative direction
-            for j in range (0, int(x)):
-                if image[j, Y[j]] != 0:
-                    line.append((j, Y[j]))
-                    length_count +=1
-                else:
-                    gap_count += 1
-                if gap_count > gap_threshold:
-                    break
-            
-            # remove points in line segment from buffer
-            for coord in line:
-                i,j = coord
-                buffer[i,j] = 0
-
-            # remove votes these points placed for this line
-            votes[rho_index, theta_index] -= len(line)
-
-            # if line segment meets length threshold, add to output list
-            if len(line) >= length_threshold:
-                lines.append(get_line_endpoints(line, width, height))
-            
-            
-        # if not, check next random pixel
-        else:
-            continue
-
-    return lines
-
-
-
-
-# votes, thetas, rhos = hough(image=edges)
-# hough2line(edges, votes, thetas, rhos)
-# img = cv.imread('images/positives/'+sys.argv[1])
-# edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
-# lines = PPHT(edges)
-# print(lines)
-# for line in lines:
-#     p1, p2 = line
-#     cv.line(img, p1, p2, (255, 0, 0), 1)
-# cv.imwrite('lines.jpg',img)
+                    if accumulator[maxi] > minvotes:
+                        print((x0, y0, a, maxi, alpha))
+                        return (x0, y0, a, maxi, alpha)
+                    else:
+                        continue
+    print("none")
+    return None

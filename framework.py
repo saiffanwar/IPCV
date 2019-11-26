@@ -7,7 +7,7 @@ from matplotlib import cm
 from numpy import unravel_index
 
 from eval import eval
-from hough import hough_lines
+from hough import hough_lines, hough_ellipse
 
 path = 'images/positives/'
 
@@ -73,6 +73,14 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
                 p1, p2 = (x1+x, y1+y), (x2+x, y2+y)
                 cv.line(output, p1, p2, (255, 0, 0), 1)
 
+        edges = cv.Canny(image=roi, threshold1=100, threshold2=1000)
+        ellipse = hough_ellipse(edges)
+        if ellipse != None:
+            x0, y0, a, b, alpha = ellipse
+            x0 += x
+            y0 += y
+            cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (0,0,255), 1)
+        
     for(x,y,w,h) in groundTruths[image]:
         output = cv.rectangle(output,(x,y),(x+w,y+h),(0,0,255),2)
 
