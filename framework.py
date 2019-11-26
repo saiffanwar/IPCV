@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 import argparse
 import operator
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from matplotlib import cm
 from numpy import unravel_index
 
@@ -74,13 +74,14 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
                 cv.line(output, p1, p2, (255, 0, 0), 1)
 
         edges = cv.Canny(image=roi, threshold1=100, threshold2=1000)
-        ellipse = hough_ellipse(edges)
-        if ellipse != None:
+        cv.imwrite('edges.jpg', edges)
+        ellipses = hough_ellipse(edges)
+        for ellipse in ellipses:
             x0, y0, a, b, alpha = ellipse
             x0 += x
             y0 += y
             cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (0,0,255), 1)
-        
+
     for(x,y,w,h) in groundTruths[image]:
         output = cv.rectangle(output,(x,y),(x+w,y+h),(0,0,255),2)
 
@@ -135,7 +136,7 @@ groundTruths = classifier2groundTruths[args.classifier]
 if args.job == "detect":
     tp, fp, fn, p, r, f1 = detect(args.image, scaleFactor=args.sf, minNeighbors=args.mn)
     print("Scores for", args.classifier, "on", args.image, ": TPs=", tp, ", FPs=", fp, ", FNs=", fn, ", Precision=", p, ", Recall=", r, "and F1=", f1)
-elif args.job == "benchmark":   
+elif args.job == "benchmark":
     AP, AR, F1 = benchmark(scaleFactor=args.sf, minNeighbors=args.mn)
     print("Benchmarks for", args.classifier, ": AP=", AP, ", AR=", AR, "and Macro-Average F1=", F1)
 

@@ -18,7 +18,7 @@ def hough_lines(image, threshold=70):
     # Vote in the hough accumulator for each (x,y)
     for y in range(height):
         for x in range(width):
-        
+
             # Only consider non-zero edges
             if image[y, x] > 0:
                 # for each possible line around (x, y)
@@ -32,12 +32,12 @@ def hough_lines(image, threshold=70):
                     # remember most recent y value that votes for (rho, theta)
                     last_voter[i, j] = y
 
-    
+
     lines = []
-    percentile = np.percentile(votes, 99.99) 
+    percentile = np.percentile(votes, 99.99)
     if percentile> 70:
         threshold = percentile
-    # for each line (rho, theta) 
+    # for each line (rho, theta)
     for i, rho in enumerate(rhos):
         for j, theta in enumerate(thetas):
             # if sufficient votes
@@ -66,49 +66,78 @@ def hough_lines(image, threshold=70):
                 # if y>height for p2, update p2 to where y=height
                 elif p2[1] > height:
                     p2 = (int((height-c)/m), height)
-                lines.append([p1, p2])   
+                lines.append([p1, p2])
     return np.asarray(lines)
 
-def hough_ellipse(edges, minvotes = 10, min2a = 10):
+def hough_ellipse(edges, leastVotes = 75, leastDistance = 40, leastb = 40):
+    detected = []
     width = edges.shape[0]
     height = edges.shape[1]
-    #  a list of all coordinates in edges that are not zero
+    # store all edge pixels in 1d array
     ys, xs = np.nonzero(edges)
     nonzeros = np.array(list(zip(ys, xs)))
-    print(nonzeros)
     # accumulator size of maximum minor axis length which is half of the width or height of the image
+    # clear accumulator
     accumulator = np.zeros(int(np.maximum(height , width)/2))
-    for i1 in range(0, len(nonzeros)):
-        for i2 in (len(nonzeros)-1, i1, -1):   
-            x1, y1 = nonzeros[i1]
-            x2, y2 = nonzeros[i2]
-            d12 = np.sqrt(((x1-x2)**2) + ((y1-y2)**2))
-            accumulator = np.zeros(int(np.maximum(height , width)/2))
-            if  x1-x2 and d12 > min2a:
-                x0 = (x1 + x2)/2
-                y0 = (y1 + y2)/2
-                a = d12/2;
-                alpha = np.arctan((y2 - y1)/(x2 - x1))
-                for i3 in range(0, len(nonzeros)):
-                    if np.all(nonzeros[i3] == nonzeros[i1]) or np.all(nonzeros[i3] == nonzeros[i2]):
-                        continue
-                    x3, y3 = nonzeros[i3]
-                    d03 = np.sqrt(((x3-x0)**2) + ((y3-y0)**2))
-                    if (d03 >= a):
-                        continue
-                    f = np.sqrt(((x3-x2)**2) + ((y3-y2)**2))
-                    cos2_tau = ((a**2 + d03**2 - f**2)/(2*a*d03))**2
-                    sin2_tau = (1-cos2_tau)**2
-                    b = np.sqrt( ((a**2) * (d03**2) * sin2_tau) / ((a**2) - (d03**2) * cos2_tau) )
-                    b= int(np.round(b))
-                    if (0 <= b and b < len(accumulator)):
-                        accumulator[b] += 1
-                    maxi = np.argmax(accumulator)
+    # for each pixel
+    for p1 in nonzeros:
+        y1, x1 = p1
+    # for each other pixel
+        for p2 in nonzeros:
+            y2, x2 = p2
+            if x2 != x1 and y2 != y1:
+            # if distance between p1 and p2 is greater than leastDistance
+                d12 = np.sqrt((x2-x1)**2 + ((y2-y1)**2))
+                if d12 > leastDistance:
+                # calculate centre, orientation and half length of major axis
+                    x0 = (x1 + x2)/2
+                    y0 = (y1 + y2)/2
+                    a = np.sqrt((x2-x1)**2 + (y2 - y1)**2)/2
+                    alpha = np.arctan((y2 - y1)/(x2 - x1))
+                    # for each third pixel
+                    for p3 in nonzeros:
+                        y3, x3 = p3
+                        # if distance between p3 and p0 is greater than leastDistance
+                        d01 = np.sqrt((x0-x1)**2 + ((y0-y1)**2))
+                        d02 = np.sqrt((x0-x2)**2 + ((y0-y2)**2))
+                        d03 = np.sqrt((x0-x3)**2 + ((y0-y3)**2))
+                        if d03 > leastDistance and d03 < d01 and d03 < d02:
+                            # calculate the length of the minor axis
+                            f = np.sqrt((x2-x3)**2 + ((y2-y3)**2))
+                            cos2_tau = ((a**2 + d03**2 - f**2)/(2*a*d03))**2
+                            if cos2_tau > 1.0:
+                                cos2_tau = 1.0
+                            sin2_tau = 1-(cos2_tau)
+                            b = np.sqrt((a**2 * d03**2 * sin2_tau)/(a**2 - (d03**2 * cos2_tau)))
+                            # update accumulator for length b
+                            if b > leastb and b < len(accumulator):
+                                accumulator[int(b)] += 1
+                    # find maximum element in accumulator array
+                    b = np.argmax(accumulator)
+                    votes = accumulator[b]
+                    # if votes is greater than leastVotes
+                    if votes > leastVotes:
+                    # ellipse detected
+                        print(x0, y0, a, b, alpha)
+                        detected.append((x0, y0, b, a, alpha))
+                    # remove pixels of detetcted ellipse from edges
+                        for i, pixel in enumerate(nonzeros):
+                            y, x = pixel
+                            X = x - x0
+                            Y = y - y0
+                            if (((X*np.cos(alpha) + Y*np.sin(alpha))**2)/a**2) + (((X*np.sin(alpha) + Y*np.cos(alpha))**2)/b**2) == 1:
+                                nonzeros = np.delete(nonzeros, [i], axis = 0)
+                        # clear accumulator
+                    accumulator = np.zeros(int(np.maximum(height , width)/2))
+        print(detected)
 
-                    if accumulator[maxi] > minvotes:
-                        print((x0, y0, a, maxi, alpha))
-                        return (x0, y0, a, maxi, alpha)
-                    else:
-                        continue
-    print("none")
-    return None
+        return detected
+
+
+# img = cv.imread('images/positives/'+sys.argv[1])
+# # img = cv.imread(sys.argv[1])
+# edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 1000)
+# cv.imwrite('edges.jpg', edges)
+# x0, y0, a, b, alpha = hough_ellipse(edges)
+# cv.ellipse(img, (int(x0), int(y0)), (int(a), int(b)),  alpha , 0, 360, (0,0,255), 1)
+# cv.imwrite('ellipse.jpg', img)
