@@ -1,10 +1,10 @@
 import cv2 as cv, sys, numpy as np
 import matplotlib.pyplot as plt
 
-def hough(image):
+def hough_lines(image, threshold=70):
     # Rho and Theta ranges
     thetas = np.deg2rad(np.arange(-90.0, 90.0))
-    width, height = image.shape
+    height, width = image.shape
     max_rho = int(round(np.sqrt((width**2) + (height**2))))
     rhos = np.linspace(-max_rho, max_rho, max_rho*2)
     # preprocess trig values
@@ -13,12 +13,14 @@ def hough(image):
 
     # Hough accumulator array of theta vs rho
     votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
+    last_voter = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
 
     # Vote in the hough accumulator for each (x,y)
-    for x in range(width):
-        for y in range(height):
+    for y in range(height):
+        for x in range(width):
+        
             # Only consider non-zero edges
-            if image[x, y] > 0:
+            if image[y, x] > 0:
                 # for each possible line around (x, y)
                 for j, theta in enumerate(thetas):
                     # Calculate corresponding rho
@@ -27,7 +29,45 @@ def hough(image):
                     i = np.argmin(np.abs(rhos - rho))
                     # increment bin in accumulator
                     votes[i , j] += 1
-    return votes, thetas, rhos
+                    # remember most recent y value that votes for (rho, theta)
+                    last_voter[i, j] = y
+
+    
+    lines = []
+    percentile = np.percentile(votes, 99.99) 
+    if percentile> 70:
+        threshold = percentile
+    # for each line (rho, theta) 
+    for i, rho in enumerate(rhos):
+        for j, theta in enumerate(thetas):
+            # if sufficient votes
+            if votes[i,j] >= threshold:
+                if theta != 0:
+                    # determine parametric form y = mx + c
+                    m = -np.cos(theta)/np.sin(theta)
+                    c = rho/np.sin(theta)
+                else:
+                    m = 0
+                    c = last_voter[i,j]
+
+                # default p1 and p2 are the y-intercept and where x=width resp.
+                p1 = (0, int(c))
+                p2 = (int(width), int((m*width)+c))
+
+                # if y-intercept is negative, update p1 to where y=0
+                if c < 0:
+                    p1 = (int(-c/m),0)
+                # if y-intercept is bigger than height, update p1 to where y=height
+                elif c > height:
+                    p1 = (int((height-c)/m), height)
+                # if y<0 for p2, update p2 to where y=0
+                if p2[1] < 0:
+                    p2 = (int(-c/m),0)
+                # if y>height for p2, update p2 to where y=height
+                elif p2[1] > height:
+                    p2 = (int((height-c)/m), height)
+                lines.append([p1, p2])   
+    return np.asarray(lines)
 
 def get_line_endpoints(line, width, height):
     min_x = width
@@ -46,7 +86,7 @@ def get_line_endpoints(line, width, height):
 
     return [(min_x, min_y), (max_x, max_y)]
 
-def PPHT(image, gap_threshold=6, length_threshold=4):
+def PPHT(image, vote_threshold=25, gap_threshold=6, length_threshold=4):
     buffer = np.copy(image)
     lines = []
 
@@ -67,9 +107,10 @@ def PPHT(image, gap_threshold=6, length_threshold=4):
 
         # randomly select a non-zero pixel
         X, Y = np.nonzero(buffer)
+
         random = np.random.choice(range(len(X)), 1)
-        x = X[random]
-        y = Y[random]
+        x = X[random][0]
+        y = Y[random][0]
         
         updated = []
 
@@ -87,12 +128,17 @@ def PPHT(image, gap_threshold=6, length_threshold=4):
         # remove pixel from buffer
         buffer[x,y]=0
 
-        # if highest peak in accumulator was a bin just updated
+        # if highest peak in accumulator was a bin just updated and meets the threshold
         peak = np.unravel_index(np.argmax(votes), votes.shape)
         rho_index, theta_index = peak
+
+        if votes[rho_index, theta_index] <= vote_threshold:
+            continue
+
         theta = thetas[theta_index]
         rho = rhos[rho_index]
         if peak in updated:
+            print("Line found at random location", x, y)
             # search orginal image along the line specified from (x,y) to find the
             # longest segment of pixels that does not exceed the gap threshold and
             # is at least the length threshold
@@ -101,18 +147,18 @@ def PPHT(image, gap_threshold=6, length_threshold=4):
             Y = []
             # if angled line
             if np.sin(theta) != 0:
-                m = int(-np.cos(theta)/np.sin(theta))
-                c = int(rho/np.sin(theta))
+                m = -np.cos(theta)/np.sin(theta)
+                c = rho/np.sin(theta)
             # if horizontal line
             else:
                 m = 0
-                c = int(y)
+                c = y
             for w in range(width):
-                y = ((m*w)+c)
-                if y > height:
+                z = int((m*w)+c)
+                if z >= height:
                     break
-                Y.append(y)
-
+                Y.append(z)
+            print(Y)
             line = [(x,y)]
             gap_count = 0
             length_count = 0
@@ -159,36 +205,14 @@ def PPHT(image, gap_threshold=6, length_threshold=4):
 
 
 
-# maps vote accumulator to a set of line endings [(x1, y1), (x1, y2)]
-def votes2lines(image, votes, thetas, rhos, threshold=100):
-    lines = []
-    width, height = image.shape
-    # for each line (rho, theta) 
-
-    for i, rho in enumerate(rhos):
-        for j, theta in enumerate(thetas):
-            # if sufficient votes
-            if votes[i,j] >= threshold and theta != 0:
-                # determine parametric form y = mx + c
-                m = -np.cos(theta)/np.sin(theta)
-                c = rho/np.sin(theta)
-
-                # axis intersections to plot
-                p1 = (int(c),0)
-                p2 = (int((m*width)+c),int(width))
-                lines.append([p1, p2])
-                # cv.line(image, p1, p2, (255, 0, 0), 1)
-    cv.imwrite('lines.jpg', image )
-    
-    return np.asarray(lines)
 
 # votes, thetas, rhos = hough(image=edges)
 # hough2line(edges, votes, thetas, rhos)
-img = cv.imread('images/positives/'+sys.argv[1])
-edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
-lines = PPHT(edges)
-print(lines)
-for line in lines:
-    p1, p2 = line
-    cv.line(img, p1, p2, (255, 0, 0), 1)
-cv.imwrite('lines.jpg',img)
+# img = cv.imread('images/positives/'+sys.argv[1])
+# edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
+# lines = PPHT(edges)
+# print(lines)
+# for line in lines:
+#     p1, p2 = line
+#     cv.line(img, p1, p2, (255, 0, 0), 1)
+# cv.imwrite('lines.jpg',img)

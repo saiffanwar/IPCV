@@ -7,7 +7,7 @@ from matplotlib import cm
 from numpy import unravel_index
 
 from eval import eval
-from hough import hough, votes2lines
+from hough import hough_lines
 
 path = 'images/positives/'
 
@@ -51,30 +51,36 @@ if args.mn < 1:
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
 def detect(image, scaleFactor=1.1, minNeighbors=1.1):
+    # ori
     img = cv.imread('images/positives/'+image)
-    edges = cv.Canny(image=img, threshold1 = 100, threshold2 = 500 )
+    output = img.copy()
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
     faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=scaleFactor,
     minNeighbors=minNeighbors, minSize=(50, 50), maxSize=(500,500)))
 
-# highlights regions of interest and draws them onto the image.
+    # highlights regions of interest and draws them onto the image.
+    ROIs = []
     for (x,y,w,h) in faces:
-        img = cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+        output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
+        roi = img[y:y+h, x:x+w]
+        edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 500 )
+        lines = hough_lines(image=edges)
+        if(len(lines) > 0):
+            for line in lines:
+                x1, y1 = line[0]
+                x2, y2 = line[1]
+                p1, p2 = (x1+x, y1+y), (x2+x, y2+y)
+                cv.line(output, p1, p2, (255, 0, 0), 1)
 
     for(x,y,w,h) in groundTruths[image]:
-        img = cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
+        output = cv.rectangle(output,(x,y),(x+w,y+h),(0,0,255),2)
 
     faces_count = faces.shape[0]
 
-    # line dectection within 
-    votes, thetas, rhos = hough(image=edges)
-    lines = votes2lines(edges, votes, thetas, rhos)
-    if(len(lines) > 0):
-        for line in lines:
-            cv.line(img, tuple(line[0]), tuple(line[1]), (255, 0, 0), 1)
+
 #displays the image with roi
-    cv.imwrite('detected.jpg',img)
+    cv.imwrite('detected.jpg',output)
     return eval(groundTruths[image], faces)
 
 
