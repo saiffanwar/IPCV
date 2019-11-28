@@ -69,68 +69,71 @@ def hough_lines(image, threshold=70):
                 lines.append([p1, p2])
     return np.asarray(lines)
 
-def hough_ellipse(edges, leastVotes = 75, leastDistance = 40, leastb = 40):
+def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 50, min_a = 50):
     detected = []
     width = edges.shape[0]
     height = edges.shape[1]
-    # store all edge pixels in 1d array
+    # 1 store all edge pixels in 1d array
     ys, xs = np.nonzero(edges)
     nonzeros = np.array(list(zip(ys, xs)))
     # accumulator size of maximum minor axis length which is half of the width or height of the image
-    # clear accumulator
+    # 2 clear accumulator
     accumulator = np.zeros(int(np.maximum(height , width)/2))
-    # for each pixel
+    # 3 for each pixel
     for p1 in nonzeros:
         y1, x1 = p1
-    # for each other pixel
+    # 4 for each other pixel
         for p2 in nonzeros:
             y2, x2 = p2
             if x2 != x1 and y2 != y1:
-            # if distance between p1 and p2 is greater than leastDistance
+            # 4 if distance between p1 and p2 is greater than leastDistance
                 d12 = np.sqrt((x2-x1)**2 + ((y2-y1)**2))
                 if d12 > leastDistance:
-                # calculate centre, orientation and half length of major axis
+                # 5 calculate centre, orientation and half length of major axis
                     x0 = (x1 + x2)/2
                     y0 = (y1 + y2)/2
                     a = np.sqrt((x2-x1)**2 + (y2 - y1)**2)/2
                     alpha = np.arctan((y2 - y1)/(x2 - x1))
-                    # for each third pixel
-                    for p3 in nonzeros:
-                        y3, x3 = p3
-                        # if distance between p3 and p0 is greater than leastDistance
-                        d01 = np.sqrt((x0-x1)**2 + ((y0-y1)**2))
-                        d02 = np.sqrt((x0-x2)**2 + ((y0-y2)**2))
-                        d03 = np.sqrt((x0-x3)**2 + ((y0-y3)**2))
-                        if d03 > leastDistance and d03 < d01 and d03 < d02:
-                            # calculate the length of the minor axis
-                            f = np.sqrt((x2-x3)**2 + ((y2-y3)**2))
-                            cos2_tau = ((a**2 + d03**2 - f**2)/(2*a*d03))**2
-                            if cos2_tau > 1.0:
-                                cos2_tau = 1.0
-                            sin2_tau = 1-(cos2_tau)
-                            b = np.sqrt((a**2 * d03**2 * sin2_tau)/(a**2 - (d03**2 * cos2_tau)))
-                            # update accumulator for length b
-                            if b > leastb and b < len(accumulator):
-                                accumulator[int(b)] += 1
-                    # find maximum element in accumulator array
-                    b = np.argmax(accumulator)
-                    votes = accumulator[b]
-                    # if votes is greater than leastVotes
-                    if votes > leastVotes:
-                    # ellipse detected
-                        print(x0, y0, a, b, alpha)
-                        detected.append((x0, y0, b, a, alpha))
-                    # remove pixels of detetcted ellipse from edges
-                        for i, pixel in enumerate(nonzeros):
-                            y, x = pixel
-                            X = x - x0
-                            Y = y - y0
-                            if (((X*np.cos(alpha) + Y*np.sin(alpha))**2)/a**2) + (((X*np.sin(alpha) + Y*np.cos(alpha))**2)/b**2) == 1:
-                                nonzeros = np.delete(nonzeros, [i], axis = 0)
-                        # clear accumulator
-                    accumulator = np.zeros(int(np.maximum(height , width)/2))
-        print(detected)
+                    # theshold a values
+                    if a > min_a:
+                        # 6 for each third pixel
+                        for p3 in nonzeros:
+                            y3, x3 = p3
+                            # 6 if distance between p3 and p0 is greater than leastDistance
+                            d01 = np.sqrt((x0-x1)**2 + ((y0-y1)**2))
+                            d02 = np.sqrt((x0-x2)**2 + ((y0-y2)**2))
+                            d03 = np.sqrt((x0-x3)**2 + ((y0-y3)**2))
+                            if d03 > leastDistance and d03 < d01 and d03 < d02:
+                                # 7 calculate the length of the minor axis
+                                f = np.sqrt((x2-x3)**2 + ((y2-y3)**2))
+                                cos2_tau = ((a**2 + d03**2 - f**2)/(2*a*d03))**2
+                                if cos2_tau > 1.0:
+                                    cos2_tau = 1.0
+                                sin2_tau = 1-(cos2_tau)
+                                b = np.sqrt((a**2 * d03**2 * sin2_tau)/(a**2 - (d03**2 * cos2_tau)))
+                                # 8 update accumulator for length b (also threshold b)
+                                if b>=min_b and b < len(accumulator):
+                                    accumulator[int(b)] += 1
+                        # 10 find maximum element in accumulator array
+                        b = np.argmax(accumulator)
+                        votes = accumulator[b]
+                        # 10 if votes is greater than leastVotes
+                        if votes > leastVotes:
+                        # 11 ellipse detected
+                            print(x0, y0, a, b, alpha)
+                            detected.append((x0, y0, b, a, alpha))
+                        # 12 remove pixels of detetcted ellipse from edges
+                            for i, pixel in enumerate(nonzeros):
+                                y, x = pixel
+                                X = x - x0
+                                Y = y - y0
+                                if np.round((((X*np.cos(alpha) + Y*np.sin(alpha))**2)/a**2) + (((X*np.sin(alpha) + Y*np.cos(alpha))**2)/b**2)) == 1:
+                                    edges[y, x] = 0
+                            ys, xs = np.nonzero(edges)
+                            nonzeros = np.array(list(zip(ys, xs)))
 
+                    # 13 clear accumulator
+                    accumulator = np.zeros(int(np.maximum(height , width)/2))
         return detected
 
 

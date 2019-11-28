@@ -50,19 +50,25 @@ if args.mn < 1:
 
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
-def detect(image, scaleFactor=1.1, minNeighbors=1.1):
-    # ori
+def detect(image, scaleFactor=1.2, minNeighbors=1.7):
+    if args.classifier == "dartboard":
+        scaleFactor = 1.1
+        minNeighbors = 1  
     img = cv.imread('images/positives/'+image)
     output = img.copy()
+    output2 = img.copy()
+
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
     faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=scaleFactor,
     minNeighbors=minNeighbors, minSize=(50, 50), maxSize=(500,500)))
-
+    
     # highlights regions of interest and draws them onto the image.
     ROIs = []
+    final_faces = []
     for (x,y,w,h) in faces:
         output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
+
         roi = img[y:y+h, x:x+w]
         edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 500 )
         lines = hough_lines(image=edges)
@@ -76,16 +82,23 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
         edges = cv.Canny(image=roi, threshold1=100, threshold2=1000)
         cv.imwrite('edges.jpg', edges)
         ellipses = hough_ellipse(edges)
-        for ellipse in ellipses:
-            x0, y0, a, b, alpha = ellipse
-            x0 += x
-            y0 += y
-            cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (0,0,255), 1)
+        if ellipses != None:
+            for ellipse in ellipses:
+                x0, y0, a, b, alpha = ellipse
+                x0 += x
+                y0 += y
+                cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (255,255,255), 1)
+
+        # ellipse_num = 0
+        # if ellipses != None:
+        #     ellipse_num = len(ellipses)
+        # if len(lines) > 3 or ellipse_num > 1:
+        #     output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
+        #     final_faces.append((x,y,w,h))
+
 
     for(x,y,w,h) in groundTruths[image]:
         output = cv.rectangle(output,(x,y),(x+w,y+h),(0,0,255),2)
-
-    faces_count = faces.shape[0]
 
 
 #displays the image with roi
@@ -94,13 +107,12 @@ def detect(image, scaleFactor=1.1, minNeighbors=1.1):
 
 
 
-def benchmark (scaleFactor=1.1, minNeighbors=1):
+def benchmark (scaleFactor=1.2, minNeighbors=7):
     P, R = [], []
     for k in groundTruths.keys():
-        _, _, _, p, r, f1 =  detect(k, scaleFactor, minNeighbors)
+        tp, fp, fn, p, r, f1 =  detect(k, scaleFactor, minNeighbors)
         P.append(p)
         R.append(r)
-        # print(k, p, r, f1)
     AP = np.mean(P)
     AR = np.mean(R)
     AF1 = 2 * ((AP*AR)/ (AP + AR))
