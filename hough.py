@@ -69,10 +69,11 @@ def hough_lines(image, threshold=70):
                 lines.append([p1, p2])
     return np.asarray(lines)
 
-def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 50, min_a = 50):
+def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 40, min_a = 40):
     detected = []
-    width = edges.shape[0]
-    height = edges.shape[1]
+    detectedvotes=[]
+    height = edges.shape[0]
+    width = edges.shape[1]
     # 1 store all edge pixels in 1d array
     ys, xs = np.nonzero(edges)
     nonzeros = np.array(list(zip(ys, xs)))
@@ -95,7 +96,7 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 50, min_a 
                     a = np.sqrt((x2-x1)**2 + (y2 - y1)**2)/2
                     alpha = np.arctan((y2 - y1)/(x2 - x1))
                     # theshold a values
-                    if a > min_a:
+                    if a > min_a and x0 > 0.45*width and x0 < 0.55*width and y0 > 0.45*height and y0 < 0.55*height:
                         # 6 for each third pixel
                         for p3 in nonzeros:
                             y3, x3 = p3
@@ -112,15 +113,17 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 50, min_a 
                                 sin2_tau = 1-(cos2_tau)
                                 b = np.sqrt((a**2 * d03**2 * sin2_tau)/(a**2 - (d03**2 * cos2_tau)))
                                 # 8 update accumulator for length b (also threshold b)
-                                if b>=min_b and b < len(accumulator):
+                                if b>=min_b and b < len(accumulator) and b > 0.66*a:
                                     accumulator[int(b)] += 1
                         # 10 find maximum element in accumulator array
                         b = np.argmax(accumulator)
                         votes = accumulator[b]
                         # 10 if votes is greater than leastVotes
                         if votes > leastVotes:
+                            # print(votes)
+                            detectedvotes.append(a*b)
                         # 11 ellipse detected
-                            print(x0, y0, a, b, alpha)
+                            # print(x0, y0, b, a, alpha)
                             detected.append((x0, y0, b, a, alpha))
                         # 12 remove pixels of detetcted ellipse from edges
                             for i, pixel in enumerate(nonzeros):
@@ -134,6 +137,14 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 50, min_a 
 
                     # 13 clear accumulator
                     accumulator = np.zeros(int(np.maximum(height , width)/2))
+        # print(detected)
+        detected = np.asarray(detected)
+        if len(detected) > 0:
+            finalDetected = detected[np.argwhere(detectedvotes == np.amax(detectedvotes)).flatten()]
+            print(finalDetected)
+            return finalDetected
+        else:
+            return []
         return detected
 
 
