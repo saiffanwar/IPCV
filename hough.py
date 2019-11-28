@@ -97,7 +97,7 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 40, min_a 
                     alpha = np.arctan((y2 - y1)/(x2 - x1))
                     # theshold a values
                     if a > min_a and x0 > 0.45*width and x0 < 0.55*width and y0 > 0.45*height and y0 < 0.55*height:
-                        # 6 for each third pixel
+                    # 6 for each third pixel
                         for p3 in nonzeros:
                             y3, x3 = p3
                             # 6 if distance between p3 and p0 is greater than leastDistance

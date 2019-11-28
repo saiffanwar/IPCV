@@ -16,21 +16,21 @@ classifier2groundTruths = {"frontalface" : {'dart4.jpg': [[342, 99, 135, 176]],
                 'dart13.jpg': [[418, 118, 118, 143]],
                 'dart14.jpg': [[463, 200, 91, 126], [727, 174, 102, 124]],
                 'dart15.jpg': []},
-                "dartboard": {'dart0.jpg': [[444, 14, 152, 175]],
-                'dart1.jpg': [[196, 131, 195, 192]],
-                'dart2.jpg': [[103, 97, 88, 88]],
-                'dart3.jpg': [[325, 149, 64, 69]],
-                'dart4.jpg': [[185, 96, 168, 194]],
-                'dart5.jpg': [[434, 142, 90, 104]],
-                'dart6.jpg': [[213, 118, 59, 61]],
-                'dart7.jpg': [[256, 171, 114, 143]],
-                'dart8.jpg': [[844, 219, 113, 118], [68, 254, 58, 85]],
-                'dart9.jpg': [[205, 49, 228, 230]],
-                'dart10.jpg': [[586, 130, 53, 81], [918, 150, 33, 63], [93, 104, 93, 109]],
-                'dart11.jpg': [[176, 105, 56, 49]],
-                'dart12.jpg': [[158, 79, 57, 133]],
-                'dart13.jpg': [[275, 123, 126, 127]],
-                'dart14.jpg': [[123, 103, 122, 123]],
+                "dartboard": {'dart0.jpg': [[442, 16, 155, 177]],
+                'dart1.jpg': [[198, 133, 191, 191]],
+                'dart2.jpg': [[102,97,89,86]],
+                'dart3.jpg': [[325, 148, 65, 71]],
+                'dart4.jpg': [[184, 95, 169, 194]],
+                'dart5.jpg': [[433, 141, 92, 104]],
+                'dart6.jpg': [[213, 117, 59, 61]],
+                'dart7.jpg': [[256, 171, 121, 142]],
+                'dart8.jpg': [[69, 254, 58, 84], [844, 219, 112, 118]],
+                'dart9.jpg': [[202, 48, 232, 232]],
+                'dart10.jpg': [[91, 106, 97, 108], [585,125,55,85],[919,148,33,63]],
+                'dart11.jpg': [[178, 105, 55, 49]],
+                'dart12.jpg': [[157, 78, 58, 135]],
+                'dart13.jpg': [[277, 120, 125, 129]],
+                'dart14.jpg': [[120, 101, 125, 123], [990, 95, 120, 124]],
                 'dart15.jpg': [[155, 57, 125, 136]]}
 }
 
@@ -87,16 +87,22 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
                 x0, y0, a, b, alpha = ellipse
                 x0 += x
                 y0 += y
-                cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (255,0,255), 1)
+                cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (255,0,0), 2)
+        else:
+            ellipses = []
 
         if len(lines) > 3 and len(ellipses) > 0 :
             x0,  y0,  a, b,  alpha = ellipses[0]
             x0 += x
             y0 += y
-            print((x0-b,y0-a),(2*b,2*a))
-            output = cv.rectangle(output,(int(x0-a) ,int(y0-b)),(int(x0+a),int(y0+b)),(0,255,0),2)
+            if 4*a*b < 0.4 * w * h:
+                x = int(x0-a)
+                y=int(y0-b)
+                w=int(2*a)
+                h=int(2*b) 
 
-            final_faces.append((x0-b,y0-a,2*b,2*a))
+            output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
+            final_faces.append((x,y,w,h))
 
 
     for(x,y,w,h) in groundTruths[image]:
@@ -104,7 +110,7 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
 
 
 #displays the image with roi
-    cv.imwrite('detected.jpg',output)
+    cv.imwrite('images/detected/'+image,output)
     return eval(groundTruths[image], final_faces)
 
 

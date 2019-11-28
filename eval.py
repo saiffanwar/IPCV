@@ -99,7 +99,7 @@ def iou(target, predict):
 	iou = intersection/union
 	return iou
 
-def iouThreshold(iou, threshold = 0.66) :
+def iouThreshold(iou, threshold = 0.5) :
 	# Applies threshold to determine if positive or negative prediction
 	if iou <= threshold:
 		return 0
