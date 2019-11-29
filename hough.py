@@ -10,6 +10,10 @@ def hough_lines(image, threshold=70):
     # preprocess trig values
     cos_theta = np.cos(thetas)
     sin_theta = np.sin(thetas)
+    _, nz = np.nonzero(image)
+    if(len(nz)<3500):
+        threshold = 50
+        
 
     # Hough accumulator array of theta vs rho
     votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
@@ -77,6 +81,12 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 20, min_b = 40, min_a 
     # 1 store all edge pixels in 1d array
     ys, xs = np.nonzero(edges)
     nonzeros = np.array(list(zip(ys, xs)))
+    # print(len(nonzeros))
+    if(len(nonzeros)<1500):
+        if centre != None:
+            leastVotes=20
+        else:
+            leastVotes=50
     # accumulator size of maximum minor axis length which is half of the width or height of the image
     # 2 clear accumulator
     accumulator = np.zeros(int(np.minimum(height , width)/2))
@@ -139,8 +149,8 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 20, min_b = 40, min_a 
                                 y, x = pixel
                                 X = x - x0
                                 Y = y - y0
-                                # if np.round((((X*np.cos(alpha) + Y*np.sin(alpha))**2)/a**2) + (((X*np.sin(alpha) + Y*np.cos(alpha))**2)/b**2)) == 1:
-                                #     edges[y, x] = 0
+                                if np.round((((X*np.cos(alpha) + Y*np.sin(alpha))**2)/a**2) + (((X*np.sin(alpha) + Y*np.cos(alpha))**2)/b**2)) == 1:
+                                    edges[y, x] = 0
                             ys, xs = np.nonzero(edges)
                             nonzeros = np.array(list(zip(ys, xs)))
 

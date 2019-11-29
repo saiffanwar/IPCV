@@ -71,7 +71,6 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
         minNeighbors = 1
     img = cv.imread('images/positives/'+image)
     output = img.copy()
-    overlay = img.copy()
 
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.equalizeHist(gray)
@@ -82,10 +81,24 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
     ROIs = []
     tmp_faces = []
     final_faces = []
+    dropped = []
+    for i, f1 in enumerate(faces):
+        if  i not in dropped:
+            for j, f2 in enumerate(faces):
+                if i != j and j not in dropped:
+                    z = iou(f1, f2)
+                    z = iouThreshold(z, 0.1)
+                    if z == 1:
+                        _, _, w1, h1 = f1
+                        _, _, w2, h2 = f2
+                        if (w1*h1) <= (w2*h2):
+                            dropped.append(j)
+                        else:
+                            dropped.append(i)
 
+    tmp_faces = [face for i, face in enumerate(faces) if i not in dropped]
 
-    for (x,y,w,h) in faces:
-        overlay = cv.rectangle(overlay,(x,y),(x+w,y+h),(0,255,0),2)
+    for (x,y,w,h) in tmp_faces:
 
         roi = img[y:y+h, x:x+w]
         edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 200 )
@@ -127,11 +140,11 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
             x0,  y0,  a, b,  alpha = ellipses[0]
             x0 += x
             y0 += y
-            if 4*a*b < 0.4 * w * h:
-                x = int(x0-a)
-                y=int(y0-b)
-                w=int(2*a)
-                h=int(2*b) 
+            # if 4*a*b < 0.* w * h:
+            x = int(x0-a)
+            y=int(y0-b)
+            w=int(2*a)
+            h=int(2*b) 
 
             output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
             final_faces.append((x,y,w,h))
@@ -142,7 +155,6 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
 
 
 #displays the image with roi
-    output = cv.addWeighted(overlay, 0.4, output, 1 - 0.4, 0)
     cv.imwrite('images/detected/'+image,output)
     return eval(groundTruths[image], final_faces)
 
