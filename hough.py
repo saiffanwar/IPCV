@@ -69,7 +69,7 @@ def hough_lines(image, threshold=70):
                 lines.append([p1, p2])
     return np.asarray(lines)
 
-def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 40, min_a = 40):
+def hough_ellipse(edges, leastVotes = 10, leastDistance = 40, min_b = 40, min_a = 40):
     detected = []
     detectedvotes=[]
     height = edges.shape[0]
@@ -141,7 +141,7 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 40, min_b = 40, min_a 
         detected = np.asarray(detected)
         if len(detected) > 0:
             finalDetected = detected[np.argwhere(detectedvotes == np.amax(detectedvotes)).flatten()]
-            print(finalDetected)
+            # print(finalDetected)
             return finalDetected
         else:
             return []

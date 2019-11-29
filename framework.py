@@ -48,6 +48,21 @@ if args.sf < 1.1:
 if args.mn < 1:
     parser.error("Minimum MN is 1")
 
+def line_intersection(line1, line2):
+    xdiff = (line1[0,0] - line1[1,0], line2[0,0] - line2[1,0])
+    ydiff = (line1[0,1] - line1[1,1], line2[0,1] - line2[1,1])
+
+    def det(a, b):
+        return a[0] * b[1] - a[1] * b[0]
+
+    div = det(xdiff, ydiff)
+    if div == 0:
+       return None
+
+    d = (det(*line1), det(*line2))
+    x = det(d, xdiff) / div
+    y = det(d, ydiff) / div
+    return (int(x), int(y))
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
 def detect(image, scaleFactor=1.2, minNeighbors=1.7):
@@ -72,12 +87,24 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
         roi = img[y:y+h, x:x+w]
         edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 500 )
         lines = hough_lines(image=edges)
+        intersections = []
         if(len(lines) > 0):
-            for line in lines:
+            for i, line in enumerate(lines):
                 x1, y1 = line[0]
                 x2, y2 = line[1]
                 p1, p2 = (x1+x, y1+y), (x2+x, y2+y)
                 cv.line(output, p1, p2, (255, 0, 0), 1)
+                for j, line2 in enumerate(lines):
+                    if i != j:
+                        p = line_intersection(line, line2)
+                        if p != None:
+                            intersections.append(p)
+        
+        if(len(intersections)>0):
+            intersections = np.asarray(intersections)
+            meanx = np.mean(intersections[:, 0])
+            meany = np.mean(intersections[:, 1])
+            cv.circle(output, (int(np.round(meanx))+x, int(np.round(meany))+y), 5, (255, 255, 0), 2)
 
         edges = cv.Canny(image=roi, threshold1=100, threshold2=1000)
         cv.imwrite('edges.jpg', edges)
@@ -121,6 +148,8 @@ def benchmark (scaleFactor=1.2, minNeighbors=7):
         tp, fp, fn, p, r, f1 =  detect(k, scaleFactor, minNeighbors)
         P.append(p)
         R.append(r)
+        print(k, ": TPs=", tp, ", FPs=", fp, ", FNs=", fn, ", Precision=", p, ", Recall=", r, "and F1=", f1)
+
     AP = np.mean(P)
     AR = np.mean(R)
     AF1 = 2 * ((AP*AR)/ (AP + AR))
