@@ -38,15 +38,15 @@ parser = argparse.ArgumentParser(description = 'Framework for running, testing a
 parser.add_argument('--image', help='File name of image in /images/positives to use', default = 'dart5.jpg')
 parser.add_argument('--classifier', help='Name of trained classifier to use', choices=['frontalface', 'dartboard'], default = 'frontalface')
 parser.add_argument('--job', help='Job to perform', choices = ['detect', 'benchmark', 'optimise'], default = 'detect')
-parser.add_argument('--sf', help='Scale Factor hyper-parameter (>=1.1)', type=float, default = 1.1)
-parser.add_argument('--mn', help='Minimum Neighbours hyper-paramter (>=1)', type=int, default = 1)
+parser.add_argument('--sf', help='Scale Factor hyper-parameter (>=1.1)', type=float, default = 0.0)
+parser.add_argument('--mn', help='Minimum Neighbours hyper-paramter (>=1)', type=int, default = 0)
 
 args = parser.parse_args()
 
-if args.sf < 1.1:
-    parser.error("Minimum SF is 1.1")
-if args.mn < 1:
-    parser.error("Minimum MN is 1")
+# if args.sf < 1.1:
+#     parser.error("Minimum SF is 1.1")
+# if args.mn < 1:
+#     parser.error("Minimum MN is 1")
 
 def line_intersection(line1, line2):
     xdiff = (line1[0,0] - line1[1,0], line2[0,0] - line2[1,0])
@@ -66,9 +66,6 @@ def line_intersection(line1, line2):
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
 def detect(image, scaleFactor=1.2, minNeighbors=7):
-    if args.classifier == "dartboard":
-        scaleFactor = 1.1
-        minNeighbors = 1
     img = cv.imread('images/positives/'+image)
     output = img.copy()
 
@@ -208,11 +205,24 @@ np.seterr(all='raise')
     # Load Classifier
 face_cascade = cv.CascadeClassifier(args.classifier+'.xml')
 groundTruths = classifier2groundTruths[args.classifier]
+
+if args.sf == 0.0:
+    if args.classifier == "frontalface":
+        sf = 1.2
+    else:
+        sf = 1.1
+if args.mn == 0:
+    if args.classifier == "frontalface":
+        mn = 7
+    else:
+        mn = 2
+
+
 if args.job == "detect":
-    tp, fp, fn, p, r, f1 = detect(args.image, scaleFactor=args.sf, minNeighbors=args.mn)
+    tp, fp, fn, p, r, f1 = detect(args.image, scaleFactor=sf, minNeighbors=mn)
     print("Scores for", args.classifier, "on", args.image, ": TPs=", tp, ", FPs=", fp, ", FNs=", fn, ", Precision=", p, ", Recall=", r, "and F1=", f1)
 elif args.job == "benchmark":
-    AP, AR, F1 = benchmark(scaleFactor=args.sf, minNeighbors=args.mn)
+    AP, AR, F1 = benchmark(scaleFactor=sf, minNeighbors=mn)
     print("Benchmarks for", args.classifier, ": AP=", AP, ", AR=", AR, "and Macro-Average F1=", F1)
 
 elif args.job == "optimise":
