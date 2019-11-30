@@ -65,7 +65,7 @@ def line_intersection(line1, line2):
     return (int(x), int(y))
 
 #detects image and returns array called 'faces' with subarrays containg x, y, width and height of all boxes around detected faces.
-def detect(image, scaleFactor=1.2, minNeighbors=1.7):
+def detect(image, scaleFactor=1.2, minNeighbors=7):
     if args.classifier == "dartboard":
         scaleFactor = 1.1
         minNeighbors = 1
@@ -77,78 +77,81 @@ def detect(image, scaleFactor=1.2, minNeighbors=1.7):
     faces = np.asarray(face_cascade.detectMultiScale(image=gray, scaleFactor=scaleFactor,
     minNeighbors=minNeighbors, minSize=(50, 50), maxSize=(500,500)))
 
+    # if args.classifier == "dartboard":
+    #     # highlights regions of interest and draws them onto the image.
+    #     ROIs = []
+    #     tmp_faces = []
+    #     final_faces = []
+    #     dropped = []
+    #     for i, f1 in enumerate(faces):
+    #         if  i not in dropped:
+    #             for j, f2 in enumerate(faces):
+    #                 if i != j and j not in dropped:
+    #                     z = iou(f1, f2)
+    #                     z = iouThreshold(z, 0.1)
+    #                     if z == 1:
+    #                         _, _, w1, h1 = f1
+    #                         _, _, w2, h2 = f2
+    #                         if (w1*h1) <= (w2*h2):
+    #                             dropped.append(j)
+    #                         else:
+    #                             dropped.append(i)
+    #
+    #     tmp_faces = [face for i, face in enumerate(faces) if i not in dropped]
+
+        # for (x,y,w,h) in tmp_faces:
+        #
+        #     roi = img[y:y+h, x:x+w]
+        #     edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 200 )
+        #     lines = hough_lines(image=edges)
+        #     intersections = []
+        #     if(len(lines) > 0):
+        #         for i, line in enumerate(lines):
+        #             x1, y1 = line[0]
+        #             x2, y2 = line[1]
+        #             p1, p2 = (x1+x, y1+y), (x2+x, y2+y)
+        #             cv.line(output, p1, p2, (255, 0, 0), 1)
+        #             for j, line2 in enumerate(lines):
+        #                 if i != j:
+        #                     p = line_intersection(line, line2)
+        #                     if p != None:
+        #                         intersections.append(p)
+        #
+        #     centre = None
+        #     if(len(intersections)>0):
+        #         intersections = np.asarray(intersections)
+        #         meanx = np.mean(intersections[:, 0])
+        #         meany = np.mean(intersections[:, 1])
+        #         centre = (int(np.round(meanx)), int(np.round(meany)))
+        #         cv.circle(output,  (int(np.round(meanx))+x, int(np.round(meany))+y), 5, (255, 255, 0), 2)
+        #
+        #     edges = cv.Canny(image=roi, threshold1=100, threshold2=250)
+        #     cv.imwrite('edges.jpg', edges)
+        #     ellipses = hough_ellipse(edges, centre = centre)
+        #     if np.all(ellipses) != None:
+        #         for ellipse in ellipses:
+        #             x0, y0, a, b, alpha = ellipse
+        #             x0 += x
+        #             y0 += y
+        #             cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (255,0,0), 2)
+        #     else:
+        #         ellipses = []
+        #
+        #     if len(ellipses) > 0 :
+        #         x0,  y0,  a, b,  alpha = ellipses[0]
+        #         x0 += x
+        #         y0 += y
+        #         # if 4*a*b < 0.* w * h:
+        #         x = int(x0-a)
+        #         y=int(y0-b)
+        #         w=int(2*a)
+        #         h=int(2*b)
     if args.classifier == "dartboard":
-        # highlights regions of interest and draws them onto the image.
-        ROIs = []
-        tmp_faces = []
         final_faces = []
-        dropped = []
-        for i, f1 in enumerate(faces):
-            if  i not in dropped:
-                for j, f2 in enumerate(faces):
-                    if i != j and j not in dropped:
-                        z = iou(f1, f2)
-                        z = iouThreshold(z, 0.1)
-                        if z == 1:
-                            _, _, w1, h1 = f1
-                            _, _, w2, h2 = f2
-                            if (w1*h1) <= (w2*h2):
-                                dropped.append(j)
-                            else:
-                                dropped.append(i)
+        for (x,y,w,h) in faces:
+            output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
+            final_faces.append((x,y,w,h))
 
-        tmp_faces = [face for i, face in enumerate(faces) if i not in dropped]
-
-        for (x,y,w,h) in tmp_faces:
-
-            roi = img[y:y+h, x:x+w]
-            edges = cv.Canny(image=roi, threshold1 = 100, threshold2 = 200 )
-            lines = hough_lines(image=edges)
-            intersections = []
-            if(len(lines) > 0):
-                for i, line in enumerate(lines):
-                    x1, y1 = line[0]
-                    x2, y2 = line[1]
-                    p1, p2 = (x1+x, y1+y), (x2+x, y2+y)
-                    cv.line(output, p1, p2, (255, 0, 0), 1)
-                    for j, line2 in enumerate(lines):
-                        if i != j:
-                            p = line_intersection(line, line2)
-                            if p != None:
-                                intersections.append(p)
-
-            centre = None
-            if(len(intersections)>0):
-                intersections = np.asarray(intersections)
-                meanx = np.mean(intersections[:, 0])
-                meany = np.mean(intersections[:, 1])
-                centre = (int(np.round(meanx)), int(np.round(meany)))
-                cv.circle(output,  (int(np.round(meanx))+x, int(np.round(meany))+y), 5, (255, 255, 0), 2)
-
-            edges = cv.Canny(image=roi, threshold1=100, threshold2=250)
-            cv.imwrite('edges.jpg', edges)
-            ellipses = hough_ellipse(edges, centre = centre)
-            if np.all(ellipses) != None:
-                for ellipse in ellipses:
-                    x0, y0, a, b, alpha = ellipse
-                    x0 += x
-                    y0 += y
-                    cv.ellipse(output, (int(x0), int(y0)), (int(a), int(b)), alpha, 0, 360, (255,0,0), 2)
-            else:
-                ellipses = []
-
-            if len(ellipses) > 0 :
-                x0,  y0,  a, b,  alpha = ellipses[0]
-                x0 += x
-                y0 += y
-                # if 4*a*b < 0.* w * h:
-                x = int(x0-a)
-                y=int(y0-b)
-                w=int(2*a)
-                h=int(2*b)
-
-                output = cv.rectangle(output,(x,y),(x+w,y+h),(0,255,0),2)
-                final_faces.append((x,y,w,h))
     else:
         final_faces = []
         for (x,y,w,h) in faces:
