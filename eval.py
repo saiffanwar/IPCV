@@ -7,7 +7,7 @@ def eval(targets, predicts):
 	# Counters for True Positives, False Positives and False Negatives
 	TP, FP, FN = 0, 0, 0
 
-	# If there are no targets or predicts: assign perfect precision, recall & f1
+	# If there are no targets and predicts: assign perfect precision, recall & f1
 	if(len(targets) == 0 and len(predicts) == 0):
 		return 0, 0, 0, 1, 1, 1
 
@@ -24,11 +24,11 @@ def eval(targets, predicts):
 	# If there are both targets and predicts
 	else:
 
-		# Calculate IOU between each target and predict
-		IOUs = [[iou(t, p) for p in predicts] for t in targets]
-		
-		# Apply threshold on IOUs to determine detections
-		detections = np.asarray([[iouThreshold(x) for x in iou] for iou in IOUs])
+		# Calculate overlaps between each target and predict
+		overlaps = [[iou(t, p) for p in predicts] for t in targets]
+
+		# Apply threshold on overlaps to determine detections
+		detections = np.asarray([[iouThreshold(x) for x in iou] for iou in overlaps])
 
 		# for each row that has no 1s in the thresholded iou matrix, this reflect an object never detected (FN)
 		for row in detections:
