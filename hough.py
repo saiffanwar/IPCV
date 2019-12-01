@@ -13,7 +13,7 @@ def hough_lines(image, threshold=70):
     _, nz = np.nonzero(image)
     if(len(nz)<3500):
         threshold = 50
-        
+
 
     # Hough accumulator array of theta vs rho
     votes = np.zeros((len(rhos), len(thetas)), dtype=np.uint8)
@@ -35,7 +35,8 @@ def hough_lines(image, threshold=70):
                     votes[i , j] += 1
                     # remember most recent y value that votes for (rho, theta)
                     last_voter[i, j] = y
-
+    # print(votes, thetas, rhos)
+    # show_hough_line(image, votes, thetas, rhos)
 
     lines = []
     percentile = np.percentile(votes, 99.99)
@@ -50,6 +51,7 @@ def hough_lines(image, threshold=70):
                     # determine parametric form y = mx + c
                     m = -np.cos(theta)/np.sin(theta)
                     c = rho/np.sin(theta)
+
                 else:
                     m = 0
                     c = last_voter[i,j]
@@ -106,9 +108,9 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 20, min_b = 40, min_a 
                     a = np.sqrt((x2-x1)**2 + (y2 - y1)**2)/2
                     alpha = np.arctan((y2 - y1)/(x2 - x1))
                     # theshold a, x0 and y0 vlues
-                    valid = False  
-                    if a > min_a:    
-                        if np.all(centre == None):              
+                    valid = False
+                    if a > min_a:
+                        if np.all(centre == None):
                             if x0 > 0.45*width and x0 < 0.55*width and y0 > 0.45*height and y0 < 0.55*height:
                                 valid = True
                         else:
@@ -165,6 +167,30 @@ def hough_ellipse(edges, leastVotes = 50, leastDistance = 20, min_b = 40, min_a 
         else:
             return []
         return detected
+
+
+def show_hough_line(img, accumulator, thetas, rhos, save_path=None):
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(1, 2, figsize=(10, 10))
+
+    ax[0].imshow(img, cmap=plt.cm.gray)
+    ax[0].set_title('Input image')
+    ax[0].axis('image')
+
+    ax[1].imshow(
+        accumulator, cmap='jet',
+        extent=[np.rad2deg(thetas[-1]), np.rad2deg(thetas[0]), rhos[-1], rhos[0]])
+    ax[1].set_aspect('equal', adjustable='box')
+    ax[1].set_title('Hough transform')
+    ax[1].set_xlabel('Angles (degrees)')
+    ax[1].set_ylabel('Distance (pixels)')
+    ax[1].axis('image')
+
+    # plt.axis('off')
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight')
+    plt.show()
 
 
 # img = cv.imread('images/positives/'+sys.argv[1])
